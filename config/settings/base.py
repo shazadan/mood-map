@@ -32,7 +32,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
 
     'contact_form',
-    'notes',
 )
 
 MIDDLEWARE_CLASSES = (
