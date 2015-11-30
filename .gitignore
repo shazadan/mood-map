@@ -1,6 +1,7 @@
 # Specific to project
 .idea
 .vagrant
+.DS_Store
 
 
 # Byte-compiled / optimized / DLL files

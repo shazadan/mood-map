@@ -5,7 +5,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 urlpatterns = patterns('',
     # Examples:
 
-    url(r'^$', 'maps.views.index', name='index'),
+    url(r'^$', 'visuals.views.index', name='index'),
     #url(r'^admin/', include(admin.site.urls)),
 
 );
