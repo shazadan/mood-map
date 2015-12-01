@@ -3,10 +3,15 @@ from collections import Iterable
 import re
 
 from django.conf import settings
+from django.db import connection
 
 from twython import TwythonStreamer
-import shapefile
 from textblob import TextBlob
+import psycopg2
+import shapefile
+from datetime import datetime, timedelta
+from email.utils import parsedate_tz
+
 
 
 # Twitter OAUTH Credentials
@@ -15,11 +20,14 @@ APP_SECRET = settings.TWITTER_APP_SECRET
 OAUTH_TOKEN = settings.TWITTER_OAUTH_TOKEN
 OAUTH_TOKEN_SECRET = settings.TWITTER_OAUTH_TOKEN_SECRET
 
-# long/lat (1) southwest pair  (2) northeast pair
+# Long/Lat co-ordinates for twitter:
+# (1) southwest pair  (2) northeast pair
 geo_coordinates = {'AZ': '-114.818359375,31.3321762085,'
-                         '-109.0451965332,37.0042610168'}
+                         '-109.0451965332,37.0042610168',
+                   'US': ''
+                         ''}
 
-
+# Determine US county name based on long/lat co-ordinates
 def geocoord_to_countyname(lat, lon):
     sf = shapefile.Reader("static/shapefiles/county.shp")
     for county in sf.shapeRecords():
@@ -28,7 +36,8 @@ def geocoord_to_countyname(lat, lon):
             county_name = county.record[5]
             return county_name
 
-
+# Algorithm to find a point within a polygon
+# http://geospatialpython.com/2011/01/point-in-polygon.html
 def point_in_polygon(x, y, poly):
     n = len(poly)
     inside = False
@@ -48,7 +57,28 @@ def point_in_polygon(x, y, poly):
     return inside
 
 
-# Process tweet to make it more machine readable
+def to_datetime(datestring):
+    time_tuple = parsedate_tz(datestring.strip())
+    dt = datetime(*time_tuple[:6])
+    return (dt - timedelta(seconds=time_tuple[-1])).date()
+
+
+def add_tweet(id, created_dt, coordinates, text, county, sentiment_index):
+    try:
+        cursor = connection.cursor()
+        query = "INSERT INTO tweet_bank (id, created_dt, coordinates, text, county, sentiment_index) VALUES (%s, %s, %s, %s, %s, %s)"
+        data = (id, created_dt, coordinates, text, county, sentiment_index)
+        cursor.execute(query, data)
+        connection.commit()
+        print 'saved to db'
+        cursor.close()
+
+    except Exception as e:
+        print "Encountered error: (%s)" % e.message
+
+
+
+# Process tweet to make it machine reader friendly
 def process_tweet(t):
     # Convert to lower case
     t = t.lower()
@@ -66,9 +96,9 @@ def process_tweet(t):
 
 
 class MyStreamer(TwythonStreamer):
+
     def on_success(self, data):
-        # if 'text' in data:
-        # print data['text'].encode('utf-8')
+
         if 'coordinates' in data:
             county = None
             if isinstance(data['coordinates'], Iterable):
@@ -80,21 +110,16 @@ class MyStreamer(TwythonStreamer):
         if ('text' in data) and (county != None):
             text = process_tweet(data['text'])
             analysis = TextBlob(text)
-            sentiment = analysis.sentiment.polarity
+            sentiment_index = analysis.sentiment.polarity
 
-            mood = None
-            if sentiment >= -0.05 and sentiment <= 0.05:
-                mood = 'Neutral'
-            elif sentiment < -0.05:
-                mood = 'Negative'
-            elif sentiment > 0.05:
-                mood = 'Positive'
-            else:
-                mood = 'Neutral'
+            print "%s: tweet from %s " % (data['created_at'], county,)
 
-            print "Tweet: %s" % text.encode('utf-8')
-            print "From: %s" % county
-            print "Mood: %s (%.2f)\n" %  (mood, sentiment)
+            add_tweet(id=data['id'],
+                      created_dt=to_datetime(data['created_at']),
+                      coordinates=data['coordinates']['coordinates'],
+                      text='', #text.encode('utf-8'),
+                      county=county,
+                      sentiment_index=sentiment_index)
 
 
 def on_error(self, status_code, data):
@@ -107,6 +132,4 @@ def on_error(self, status_code, data):
 
 def stream():
     stream = MyStreamer(APP_KEY, APP_SECRET, OAUTH_TOKEN, OAUTH_TOKEN_SECRET)
-    # stream.statuses.filter(track='phoenix')
     stream.statuses.filter(locations=geo_coordinates['AZ'])
-

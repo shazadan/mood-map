@@ -3,6 +3,8 @@ from fabric.api import env, local, run, sudo, require
 APT_INSTALL_PACKAGES = [
                         "libpq-dev",
                         "python-dev",
+                        "libffi-dev",
+                        "libssl-dev",
                         "python-pip",
                         "postgresql",
                         "postgresql-contrib",
@@ -11,7 +13,7 @@ APT_INSTALL_PACKAGES = [
 base = '/server'
 virtualenvs = '.virtualenvs'
 projects = 'projects'
-repo = 'django-template'
+repo = 'mood-map'
 
 # Environments
 def vagrant():
