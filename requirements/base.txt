@@ -8,5 +8,7 @@ dj-database-url==0.3.0
 psycopg2==2.6.1
 pyshp==1.2.3
 textblob==0.11.0
+twython==3.3.0
 gunicorn
-'requests[security]'
+requests[security]
+celery[redis]

@@ -1,4 +1,5 @@
 from __future__ import division
+from __future__ import absolute_import
 from collections import Iterable
 import re
 
@@ -7,11 +8,10 @@ from django.db import connection
 
 from twython import TwythonStreamer
 from textblob import TextBlob
-import psycopg2
-import shapefile
 from datetime import datetime, timedelta
 from email.utils import parsedate_tz
-
+from celery import shared_task
+import shapefile
 
 
 # Twitter OAUTH Credentials
@@ -56,30 +56,8 @@ def point_in_polygon(x, y, poly):
 
     return inside
 
-
-def to_datetime(datestring):
-    time_tuple = parsedate_tz(datestring.strip())
-    dt = datetime(*time_tuple[:6])
-    return (dt - timedelta(seconds=time_tuple[-1])).date()
-
-
-def add_tweet(id, created_dt, coordinates, text, county, sentiment_index):
-    try:
-        cursor = connection.cursor()
-        query = "INSERT INTO tweet_bank (id, created_dt, coordinates, text, county, sentiment_index) VALUES (%s, %s, %s, %s, %s, %s)"
-        data = (id, created_dt, coordinates, text, county, sentiment_index)
-        cursor.execute(query, data)
-        connection.commit()
-        print 'saved to db'
-        cursor.close()
-
-    except Exception as e:
-        print "Encountered error: (%s)" % e.message
-
-
-
-# Process tweet to make it machine reader friendly
-def process_tweet(t):
+# Make the tweet machine reader friendly
+def scrub_tweet(t):
     # Convert to lower case
     t = t.lower()
     # Convert www.* or https?://* to URL
@@ -93,6 +71,27 @@ def process_tweet(t):
     # trim
     t = t.strip('\'"')
     return t
+
+# Save tweet information to database
+@shared_task
+def add_tweet(id, created_dt, coordinates, text, county, sentiment_index):
+    try:
+        cursor = connection.cursor()
+        query = "INSERT INTO tweet_bank (id, created_dt, coordinates, text, " \
+                "county, sentiment_index) VALUES (%s, %s, %s, %s, %s, %s);"
+        data = (id, created_dt, coordinates, text, county, sentiment_index)
+        cursor.execute(query, data)
+        connection.commit()
+        print 'saved to db'
+        cursor.close()
+
+    except Exception as e:
+        print "Encountered error: (%s)" % e.message
+
+def to_datetime(datestring):
+    time_tuple = parsedate_tz(datestring.strip())
+    dt = datetime(*time_tuple[:6])
+    return (dt - timedelta(seconds=time_tuple[-1])).date()
 
 
 class MyStreamer(TwythonStreamer):
@@ -108,22 +107,22 @@ class MyStreamer(TwythonStreamer):
                     county = geocoord_to_countyname(lat, lon)
 
         if ('text' in data) and (county != None):
-            text = process_tweet(data['text'])
+            text = scrub_tweet(data['text'])
             analysis = TextBlob(text)
             sentiment_index = analysis.sentiment.polarity
 
             print "%s: tweet from %s " % (data['created_at'], county,)
 
-            add_tweet(id=data['id'],
-                      created_dt=to_datetime(data['created_at']),
+            add_tweet.delay(id=data['id'],
+                      created_dt=str(to_datetime(data['created_at'])),
+                      #created_dt='2015-01-01',
                       coordinates=data['coordinates']['coordinates'],
                       text='', #text.encode('utf-8'),
                       county=county,
                       sentiment_index=sentiment_index)
 
-
-def on_error(self, status_code, data):
-    print status_code
+    def on_error(self, status_code, data):
+        print status_code
 
     # Want to stop trying to get data because of the error?
     # Uncomment the next line!
