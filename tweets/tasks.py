@@ -77,8 +77,8 @@ def scrub_tweet(t):
 def add_tweet(id, created_dt, coordinates, text, county, sentiment_index):
     try:
         cursor = connection.cursor()
-        query = "INSERT INTO tweet_bank (id, created_dt, coordinates, text, " \
-                "county, sentiment_index) VALUES (%s, %s, %s, %s, %s, %s);"
+        query = "INSERT INTO tweets_tweet (id, created_dt, coordinates, " \
+                "text, county, sentiment_index) VALUES (%s, %s, %s, %s, %s, %s);"
         data = (id, created_dt, coordinates, text, county, sentiment_index)
         cursor.execute(query, data)
         connection.commit()
@@ -91,7 +91,7 @@ def add_tweet(id, created_dt, coordinates, text, county, sentiment_index):
 def to_datetime(datestring):
     time_tuple = parsedate_tz(datestring.strip())
     dt = datetime(*time_tuple[:6])
-    return (dt - timedelta(seconds=time_tuple[-1])).date()
+    return (dt - timedelta(seconds=time_tuple[-1]))
 
 
 class MyStreamer(TwythonStreamer):
