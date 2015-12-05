@@ -117,7 +117,7 @@ class MyStreamer(TwythonStreamer):
                       created_dt=str(to_datetime(data['created_at'])),
                       #created_dt='2015-01-01',
                       coordinates=data['coordinates']['coordinates'],
-                      text='', #text.encode('utf-8'),
+                      text=text.encode('utf-8'),
                       county=county,
                       sentiment_index=sentiment_index)
 
