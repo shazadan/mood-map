@@ -24,8 +24,7 @@ OAUTH_TOKEN_SECRET = settings.TWITTER_OAUTH_TOKEN_SECRET
 # (1) southwest pair  (2) northeast pair
 geo_coordinates = {'AZ': '-114.818359375,31.3321762085,'
                          '-109.0451965332,37.0042610168',
-                   'US': ''
-                         ''}
+                    }
 
 # Determine US county name based on long/lat co-ordinates
 def geocoord_to_countyname(lat, lon):
@@ -82,7 +81,7 @@ def add_tweet(id, created_dt, coordinates, text, county, sentiment_index):
         data = (id, created_dt, coordinates, text, county, sentiment_index)
         cursor.execute(query, data)
         connection.commit()
-        print 'saved to db'
+        print 'Tweet saved to DB'
         cursor.close()
 
     except Exception as e:
@@ -111,7 +110,7 @@ class MyStreamer(TwythonStreamer):
             analysis = TextBlob(text)
             sentiment_index = analysis.sentiment.polarity
 
-            print "%s: tweet from %s " % (data['created_at'], county,)
+            print "tweet from %s " % (county.encode('utf-8'))
 
             add_tweet.delay(id=data['id'],
                       created_dt=str(to_datetime(data['created_at'])),

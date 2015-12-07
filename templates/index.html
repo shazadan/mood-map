@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load staticfiles %}
 {% block head %}
-<script src="{% static 'd3/d3.js' %}"></script>
+<script type="text/javascript" src="{% static 'd3/d3.js' %}"></script>
 <style type="text/css">
     #tooltip {
         -moz-transition: all 0.15s;
@@ -37,22 +37,87 @@
         opacity: 0.9;
         transition-duration: 0.2s;
     }
+
+    #legend {
+    padding: 1.5em 0 0 1.5em;
+    }
+
+    li.key {
+        border-top-width: 18px;
+        border-top-style: solid;
+        font-size: .75em;
+        width: 4%;
+        padding-left: 0;
+        padding-right: 0;
+        margin-bottom: 14px;
+    }
+
 </style>
 {% endblock %}
 
 {% block content %}
-<h2>Arizona Mood Map by County</h2>
-<div id="tooltip" class="hidden">
-    <p><span id="county-label"></span></p>
+<div>
+    <p class="lead">The mood of people in State of Arizona by county over
+        the last 24 hours.</p>
 </div>
-<div id="az-county-map"></div>
+<div class="row-fluid">
+    <div class="span6">
+        <div id="tooltip" class="hidden">
+            <p><span id="county-label"></span></p>
+        </div>
+        <div id="az-county-map"></div>
+    </div>
+</div>
+<div class="row-fluid">
+    <div class="span7 offset2">
+        <div id="legend"></div>
+    </div>
+</div>
+<hr>
+<h3 id="faq">Frequenty Asked Questions</h3>
+<div class="row-fluid marketing">
+    <div class="span6">
+      <h4>How do you determine the mood in each county?</h4>
+      <p>A sentiment index is computed on each tweet that originated in
+          Arizona. This information is then aggregated at each county and
+          displayed in the map.</p>
+
+      <h4>How do you compute the sentiment index?</h4>
+      <p>I am currently using the sentiment analyzer from the TextBlob API.</p>
+
+      <h4>I see NaN when I hover over some counties. What does that mean?</h4>
+      <p>When the application is unable to find a tweet in a certain
+          geography it will print NaN as it cannot compute any information
+          for that grographic area.
+          </p>
+
+
+    </div>
+
+    <div class="span6">
+      <h4>What tools/platforms did you use to build this mood map?</h4>
+      <p>Django, Twython, Postgres and D3.js.</p>
+
+      <h4>Do you have a REST API to access the mood information?</h4>
+      <p>Not at the moment.</p>
+
+      <h4>Why did you build this map?</h4>
+      <p>Primarily to show how public information can be used to build a
+          data application.</p>
+
+      <h4>Will you be willing to share the code used to generate the map?</h4>
+      <p>Absolutely. The code is available on <a
+              href="https://github.com/shazadan/mood-map" target="_blank">
+          github</a>.</p>
+    </div>
+</div>
 <script type="text/javascript">
     //Width and height
     var w = 500;
-    var h = 500;
+    var h = 390;
     //Define Arizona map projection
     var projection = d3.geo.albers()
-                           .scale([4500])
+                           .scale([3500])
                            .rotate([108, 0, 0])
                            .translate([450, -100])
                            ;
@@ -61,9 +126,10 @@
                      .projection(projection);
 
     //Define scale to sort data values into buckets of color
+    //Colors taken from colorbrewer.js
     var color = d3.scale.quantize()
-                        .range(["rgb(247,252,253)","rgb(229,245,249)","rgb(204,236,230)","rgb(153,216,201)","rgb(102,194,164)","rgb(65,174,118)","rgb(35,139,69)","rgb(0,109,44)","rgb(0,68,27)"]);
-                        //Colors taken from colorbrewer.js
+                        .range(['rgb(8,48,107)', 'rgb(8,81,156)', 'rgb(66,146,198)','rgb(107,174,214)','rgb(158,202,225)','rgb(217,240,163)','rgb(254,227,145)','rgb(254,196,79)','rgb(254,153,41)', 'rgb(236,112,20)','rgb(204,76,2)']);
+
     //Create SVG element
     var svg = d3.select("#az-county-map")
                 .append("svg")
@@ -72,16 +138,25 @@
 
     //Load in tweet data
 
-    jsonStr = "{{ data }}";
+    jsonStr = "{{ mood_by_geo }}";
     jsonStr = jsonStr.replace(/&quot;/g,'"');
 
     data = JSON.parse(jsonStr);
 
     //Set input domain for color scale
     color.domain([
-        d3.min(data, function(d) { return -0.00; }),
-        d3.max(data, function(d) { return +0.50; })
+        d3.min(data, function(d) { return -1.00; }),
+        d3.max(data, function(d) { return +1.00; })
     ]);
+
+    var legend_values = ["negative",,,,,"neutral",,,,,"positive"]
+    var legend = d3.select('#legend').append('ul').attr('class', 'inline');
+    var keys = legend.selectAll('li.key').data(color.range());
+    keys.enter()
+        .append('li')
+        .attr('class', 'key')
+        .style('border-top-color', String)
+        .text(function(d,i) {return legend_values[i]});
 
     //Load in GeoJSON data
     d3.json("{% static 'maps/us-arizona-counties.json' %}", function(json) {
@@ -92,8 +167,11 @@
             //Grab county name
             var dataCounty = data[i].county;
 
-            //Grab data value, and convert from string to float
-            var dataValue = parseFloat(data[i].count);
+            //Grab avg index value, and convert from string to float
+            var dataValue = parseFloat(data[i].avg_index);
+
+            //Grab avg index value, and convert from string to float
+            var dataValue2 = parseFloat(data[i].num_tweets);
 
             //Find the corresponding county inside the GeoJSON
             for (var j = 0; j < json.features.length; j++) {
@@ -104,6 +182,7 @@
 
                     //Copy the data value into the JSON
                     json.features[j].properties.value = dataValue;
+                    json.features[j].properties.tweets = dataValue2;
 
                     //Stop looking through the JSON
                     break;
@@ -117,7 +196,7 @@
            .enter()
            .append("path")
            .attr("d", path)
-           .style("stroke","#ccc")
+           .style("stroke","#fff")
            .style("fill", function(d) {
                 //Get data value
                 var value = d.properties.value;
@@ -141,7 +220,7 @@
                         .style("top", (d3.event.pageY - 70) + "px")
                         .select("#county-label")
                         //Input data has been bound to JSON at this point - so values must be referenced from JSON properties
-                        .html("<strong>" + d.properties.name + "</strong>" + "<br/>" + "Mood Index: " + d.properties.value)
+                        .html("<strong>" + d.properties.name + "</strong>" + "<br/>" + "Sentiment Index: " + Math.round(d.properties.value * 100,2) + "<br/>" +  "Tweets: " + Math.round(d.properties.tweets))
 
                     //Show the tooltip
                     d3.select("#tooltip").classed("hidden", false);
@@ -152,30 +231,6 @@
                     d3.select("#tooltip").classed("hidden", true);
                })
      });
+
 </script>
-
-<hr>
-
-<h3>About this map</h3>
-
-<p>This map displays the the mood of people in every county in the state of
-    Arizona based on twitter feeds originated in the state.</p>
-
-<hr>
-<table>
-    <tr>
-        <th align="left">County</th>
-        <th>Tweet Count</th>
-    </tr>
-    {% for dict in tweet_stats %}
-    <tr>
-
-        {% for key, value in dict.items %}
-        <td> {{ value }}</td>
-        {% endfor %}
-
-    </tr>
-    {% endfor %}
-</table>
-
 {% endblock %}

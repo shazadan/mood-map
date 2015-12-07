@@ -1,46 +1,50 @@
 from django.shortcuts import render_to_response
 from django.http import Http404
-from django.db.models import Count, Sum, Case, IntegerField, When, Avg
-from django.core import serializers
-from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Count, Sum, Case, IntegerField, DecimalField,\
+    When, Avg
 import json
-
 from tweets.models import Tweet
+from datetime import datetime, date, timedelta
+from django.utils import timezone
 
-
-
-
-# Create your views here.
-#def index(request):
-#    context = {}
-#    return render(request, 'index.html', context)
 
 AZ_COUNTIES = ['Apache', 'Cochise', 'Coconino',  'Gila', 'Graham',
                'Greenlee', 'La Paz', 'Maricopa', 'Mohave', 'Navajo', 'Pima',
                'Pinal', 'Santa Cruz', 'Yavapai', 'Yuma']
 
+
+class DatetimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.strftime('%Y-%m-%dT%H:%M:%SZ')
+        elif isinstance(obj, date):
+            return obj.strftime('%Y-%m-%d')
+        elif isinstance(obj, float):
+            return round(obj,4)
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
+
+
 def index(request):
     context = {}
     try:
-        #tweets_by_county = Tweet.objects.filter(
-        # county__in=AZ_COUNTIES).values(
-        #    'county').annotate(count=Count(
-        #    'county')).order_by('-count')
+        # get tweets within the last 24 hours and that belong to AZ counties
+        date_from_utc = timezone.now() - timedelta(days=1)
+        print date_from_utc
+        mood_by_geo = Tweet.objects.filter(
+            county__in=AZ_COUNTIES, created_dt__gte=date_from_utc).values(
+            'county').annotate(
+            avg_index=Avg(Case(When(sentiment_index__gt=0, then=1),
+                           When(sentiment_index__lt=0, then=-1),
+                           default=0,
+                           output_field=DecimalField())),
+            num_tweets=Count('county'))
 
-        tweets_by_county = Tweet.objects.filter(
-            county__in=AZ_COUNTIES).values('county').annotate(
-            count=Count('county')).order_by('-count')
+        mood_by_geo_json = json.dumps(list(mood_by_geo))
 
-        tweets_stats = Tweet.objects.filter(
-            county__in=AZ_COUNTIES).values('county').annotate(
-            count=Avg('sentiment_index')).order_by('-count')
+        context = {'tweet_stats': mood_by_geo,
+                   'mood_by_geo': mood_by_geo_json}
 
-        data = json.dumps(list(tweets_stats))
-
-        #data = serializers.serialize("json",  tweets_by_county)
-
-        context = {'tweet_stats': tweets_stats,
-                   'data': data}
     except Tweet.DoesNotExist:
         raise Http404("tweet does not exist")
 
