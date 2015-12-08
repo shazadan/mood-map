@@ -11,6 +11,7 @@ textblob==0.11.0
 twython==3.3.0
 gunicorn
 requests[security]
-celery[redis]
+celery
+redis-py
 djangoajax
 cffi
