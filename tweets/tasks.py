@@ -111,7 +111,7 @@ class MyStreamer(TwythonStreamer):
             sentiment_index = analysis.sentiment.polarity
 
             #print "tweet from %s " % (county.encode('utf-8'))
-
+            print "Tweet arrived at %s" % str(datetime.now())
             add_tweet.delay(id=data['id'],
                       created_dt=str(to_datetime(data['created_at'])),
                       #created_dt='2015-01-01',
