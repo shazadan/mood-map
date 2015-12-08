@@ -2,7 +2,7 @@ import dj_database_url
 
 from .base import *
 
-DEBUG = False
+DEBUG = True
 
 ADMINS = (('Admin', get_env_variable('DEFAULT_FROM_EMAIL')),)
 MANAGERS = ADMINS
