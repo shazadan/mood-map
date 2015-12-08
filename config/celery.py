@@ -6,7 +6,9 @@ from django.conf import settings
 
 # set the default Django settings module for the 'celery' program.
 # TODO: make this dynamic based on environment
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.production')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.local')
+
+print os.environ
 
 app = Celery('mood-map')
 

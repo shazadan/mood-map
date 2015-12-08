@@ -83,7 +83,7 @@ def bs_setup_virtualenv():
     sudo("chmod 777 %(base_dir)s/%(virtualenvs_dir)s/%(virtualenv)s" % env)
 
 def bs_link_project(): # vagrant only
-    run("ln -s /vagrant %(base_dir)s/%(projects_dir)s/%(repo_dir)s" % env)
+    run("ln -sf /vagrant %(base_dir)s/%(projects_dir)s/%(repo_dir)s" % env)
 
 def bs_install_requirements():
     sudo("source %(base_dir)s/%(virtualenvs_dir)s/%(virtualenv)s/bin/activate;"
@@ -94,11 +94,20 @@ def bs_install_heroku_toolbelt():
     run("wget -O- https://toolbelt.heroku.com/install-ubuntu.sh | sh")
 
 def bs_setup_supervisor():
-    run('touch %(base_dir)s/%(projects_dir)s/logs/%('
-         'repo_dir)s/celery-worker.log' % env)
+    run('if [ ! -e %(base_dir)s/%(projects_dir)s/logs/%('
+        'repo_dir)s/celery-worker.log ]; then touch %(base_dir)s/%('
+        'projects_dir)s/logs/%(repo_dir)s/celery-worker.log; fi' % env)
     sudo('cp %(base_dir)s/%(projects_dir)s/%('
          'repo_dir)s/config/supervisor/mood-map-celery.conf '
          '/etc/supervisor/conf.d/mood-map-celery.conf' % env)
+
+    run('if [ ! -e %(base_dir)s/%(projects_dir)s/logs/%('
+        'repo_dir)s/celery-worker.log ]; then touch %(base_dir)s/%('
+        'projects_dir)s/logs/%(repo_dir)s/twitter_stream.log; fi' % env)
+    sudo('cp %(base_dir)s/%(projects_dir)s/%('
+         'repo_dir)s/config/supervisor/twitter_stream.conf '
+         '/etc/supervisor/conf.d/twitter-stream.conf' % env)
+
     sudo('supervisorctl reread')
     sudo('supervisorctl update')
 
