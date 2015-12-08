@@ -30,9 +30,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'contact_form',
-    'notes',
+    'tweets',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -86,3 +85,15 @@ STATICFILES_DIRS = (
 STATIC_URL = '/static/'
 
 MEDIA_ROOT = BASE_DIR.child("media")
+
+# Twitter settings
+TWITTER_APP_KEY = get_env_variable("TWITTER_APP_KEY")
+TWITTER_APP_SECRET = get_env_variable("TWITTER_APP_SECRET")
+TWITTER_OAUTH_TOKEN = get_env_variable("TWITTER_OAUTH_TOKEN")
+TWITTER_OAUTH_TOKEN_SECRET = get_env_variable("TWITTER_OAUTH_TOKEN_SECRET")
+
+# Celery settings
+BROKER_URL = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'

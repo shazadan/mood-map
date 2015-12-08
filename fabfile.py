@@ -3,15 +3,19 @@ from fabric.api import env, local, run, sudo, require
 APT_INSTALL_PACKAGES = [
                         "libpq-dev",
                         "python-dev",
+                        "libffi-dev",
+                        "libssl-dev",
                         "python-pip",
                         "postgresql",
                         "postgresql-contrib",
+                        "redis-server",
+                        "supervisor"
                         ]
 
 base = '/server'
 virtualenvs = '.virtualenvs'
 projects = 'projects'
-repo = 'django-template'
+repo = 'mood-map'
 
 # Environments
 def vagrant():
@@ -38,6 +42,7 @@ def bootstrap():
     bs_link_project()
     bs_install_requirements()
     bs_install_heroku_toolbelt()
+    bs_setup_supervisor()
 
 def bs_install_packages():
     sudo("apt-get update")
@@ -56,6 +61,12 @@ def bs_make_folder_structure():
          "projects_dir)s; chmod "
          "777 %(base_dir)s/%(projects_dir)s; fi" % env)
 
+    #setup logging folder
+    sudo("if [ ! -d %(base_dir)s/%(projects_dir)s/logs ]; then mkdir -p %("
+          "base_dir)s/%("
+         "projects_dir)s/logs/%(repo_dir)s; chmod "
+         "777 %(base_dir)s/%(projects_dir)s/logs/%(repo_dir)s; fi" % env)
+
 def bs_setup_virtualenv():
     "Fetches the virtualenv package"
     run("if [ ! -e virtualenv-13.1.0.tar.gz ]; then wget "
@@ -72,7 +83,7 @@ def bs_setup_virtualenv():
     sudo("chmod 777 %(base_dir)s/%(virtualenvs_dir)s/%(virtualenv)s" % env)
 
 def bs_link_project(): # vagrant only
-    run("ln -s /vagrant %(base_dir)s/%(projects_dir)s/%(repo_dir)s" % env)
+    run("ln -sf /vagrant %(base_dir)s/%(projects_dir)s/%(repo_dir)s" % env)
 
 def bs_install_requirements():
     sudo("source %(base_dir)s/%(virtualenvs_dir)s/%(virtualenv)s/bin/activate;"
@@ -81,6 +92,25 @@ def bs_install_requirements():
 
 def bs_install_heroku_toolbelt():
     run("wget -O- https://toolbelt.heroku.com/install-ubuntu.sh | sh")
+
+def bs_setup_supervisor():
+    run('if [ ! -e %(base_dir)s/%(projects_dir)s/logs/%('
+        'repo_dir)s/celery-worker.log ]; then touch %(base_dir)s/%('
+        'projects_dir)s/logs/%(repo_dir)s/celery-worker.log; fi' % env)
+    sudo('cp %(base_dir)s/%(projects_dir)s/%('
+         'repo_dir)s/config/supervisor/mood-map-celery.conf '
+         '/etc/supervisor/conf.d/mood-map-celery.conf' % env)
+
+    run('if [ ! -e %(base_dir)s/%(projects_dir)s/logs/%('
+        'repo_dir)s/celery-worker.log ]; then touch %(base_dir)s/%('
+        'projects_dir)s/logs/%(repo_dir)s/twitter_stream.log; fi' % env)
+    sudo('cp %(base_dir)s/%(projects_dir)s/%('
+         'repo_dir)s/config/supervisor/twitter_stream.conf '
+         '/etc/supervisor/conf.d/twitter-stream.conf' % env)
+
+    sudo('supervisorctl reread')
+    sudo('supervisorctl update')
+
 
 # Django commands
 def runserver():
@@ -95,6 +125,12 @@ def migrate():
         "virtualenv)s/bin/activate; python %("
         "base_dir)s/%(projects_dir)s/%(repo_dir)s/manage.py "
         "migrate --settings=config.settings.%(settings)s" % env)
+
+def makemigrations():
+    run("source %(base_dir)s/%(virtualenvs_dir)s/%("
+        "virtualenv)s/bin/activate; python %("
+        "base_dir)s/%(projects_dir)s/%(repo_dir)s/manage.py "
+        "makemigrations --settings=config.settings.%(settings)s" % env)
 
 def collectstatic():
     run("source %(base_dir)s/%(virtualenvs_dir)s/%("
@@ -113,3 +149,7 @@ def test_report():
     run("source %(base_dir)s/%(virtualenvs_dir)s/%(virtualenv)s/bin/activate;"
         "cd %(base_dir)s/%(projects_dir)s//%(repo_dir)s/;"
         "coverage html --omit='admin.py'" % env)
+
+# Supervisor commands
+def supervisor_status():
+    sudo('supervisorctl status')
