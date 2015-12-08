@@ -127,7 +127,7 @@ class MyStreamer(TwythonStreamer):
     # Uncomment the next line!
     # self.disconnect()
 
-
+@shared_task
 def stream():
     stream = MyStreamer(APP_KEY, APP_SECRET, OAUTH_TOKEN, OAUTH_TOKEN_SECRET)
     stream.statuses.filter(locations=geo_coordinates['AZ'])
