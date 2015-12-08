@@ -13,3 +13,4 @@ gunicorn
 requests[security]
 celery[redis]
 djangoajax
+cffi
