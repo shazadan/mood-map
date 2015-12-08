@@ -110,7 +110,7 @@ class MyStreamer(TwythonStreamer):
             analysis = TextBlob(text)
             sentiment_index = analysis.sentiment.polarity
 
-            print "tweet from %s " % (county.encode('utf-8'))
+            #print "tweet from %s " % (county.encode('utf-8'))
 
             add_tweet.delay(id=data['id'],
                       created_dt=str(to_datetime(data['created_at'])),

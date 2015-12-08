@@ -23,5 +23,5 @@ DATABASES = {'default': dj_database_url.config()}
 
 STATIC_ROOT = 'staticfiles'
 
-BROKER_URL=os.environ['REDIS_URL']
-CELERY_RESULT_BACKEND=os.environ['REDIS_URL']
+BROKER_URL = get_env_variable('REDIS_URL')
+CELERY_RESULT_BACKEND = get_env_variable('REDIS_URL')
