@@ -97,7 +97,6 @@ from celery.contrib.methods import task
 
 class MyStreamer(TwythonStreamer):
 
-    @task
     def on_success(self, data):
 
         if 'coordinates' in data:
@@ -120,11 +119,12 @@ class MyStreamer(TwythonStreamer):
                       #created_dt='2015-01-01',
                       coordinates=data['coordinates']['coordinates'],
                       text=text.encode('utf-8'),
-                      county=county,
+                      county=county.encode('utf-8'),
                       sentiment_index=sentiment_index)
 
     def on_error(self, status_code, data):
         print status_code
+        print data
 
     # Want to stop trying to get data because of the error?
     # Uncomment the next line!
@@ -133,5 +133,10 @@ class MyStreamer(TwythonStreamer):
 @shared_task
 def stream():
     stream = MyStreamer(APP_KEY, APP_SECRET, OAUTH_TOKEN, OAUTH_TOKEN_SECRET)
-    stream.statuses.filter(locations=geo_coordinates['AZ'])
+    while True:
+        try:
+            stream.statuses.filter(locations=geo_coordinates['AZ'])
+        except:
+            continue
+
 
