@@ -93,9 +93,11 @@ def to_datetime(datestring):
     return (dt - timedelta(seconds=time_tuple[-1]))
 
 
+from celery.contrib.methods import task
+
 class MyStreamer(TwythonStreamer):
 
-    @shared_task
+    @task
     def on_success(self, data):
 
         if 'coordinates' in data:
