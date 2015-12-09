@@ -95,6 +95,7 @@ def to_datetime(datestring):
 
 class MyStreamer(TwythonStreamer):
 
+    @shared_task
     def on_success(self, data):
 
         if 'coordinates' in data:
