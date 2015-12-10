@@ -8,8 +8,6 @@ from django.conf import settings
 # TODO: make this dynamic based on environment
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.local')
 
-print os.environ
-
 app = Celery('mood-map')
 
 # Using a string here means the worker will not have to

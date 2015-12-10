@@ -5,6 +5,7 @@ import re
 
 from django.conf import settings
 from django.db import connection
+from django.utils import timezone
 
 from twython import TwythonStreamer
 from textblob import TextBlob
@@ -12,6 +13,8 @@ from datetime import datetime, timedelta
 from email.utils import parsedate_tz
 from celery import shared_task
 import shapefile
+
+from tweets.models import Tweet
 
 
 # Twitter OAUTH Credentials
@@ -87,13 +90,18 @@ def add_tweet(id, created_dt, coordinates, text, county, sentiment_index):
     except Exception as e:
         print "Encountered error: (%s)" % e.message
 
+def delete_tweets():
+    # Delete all tweets older than 2 days
+    date_from_utc = timezone.now() - timedelta(days=2)
+    Tweet.objects.filter(created_dt__lt=date_from_utc).delete()
+    print "Deleted tweets older than %s" % str(date_from_utc)
+
 def to_datetime(datestring):
     time_tuple = parsedate_tz(datestring.strip())
     dt = datetime(*time_tuple[:6])
     return (dt - timedelta(seconds=time_tuple[-1]))
 
 
-from celery.contrib.methods import task
 
 class MyStreamer(TwythonStreamer):
 
