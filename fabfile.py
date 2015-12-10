@@ -132,6 +132,13 @@ def makemigrations():
         "base_dir)s/%(projects_dir)s/%(repo_dir)s/manage.py "
         "makemigrations --settings=config.settings.%(settings)s" % env)
 
+
+def syncdb():
+    run("source %(base_dir)s/%(virtualenvs_dir)s/%("
+        "virtualenv)s/bin/activate; python %("
+        "base_dir)s/%(projects_dir)s/%(repo_dir)s/manage.py "
+        "syncdb --settings=config.settings.%(settings)s" % env)
+
 def collectstatic():
     run("source %(base_dir)s/%(virtualenvs_dir)s/%("
         "virtualenv)s/bin/activate; python %("
