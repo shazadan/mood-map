@@ -40,9 +40,9 @@ def index(request):
             query_string = request.GET['q']
             entry_query = get_query(query_string, ['text',])
 
-        mood_by_geo = Tweet.objects.filter(entry_query,
+        mood_by_geo = Tweet.objects.filter(
             county__in=AZ_COUNTIES, created_dt__gte=date_from_utc,
-            ).values(
+            ).filter(entry_query).values(
             'county').annotate(
             avg_index=Avg(Case(When(sentiment_index__gt=0, then=1),
                                When(sentiment_index__lt=0, then=-1),
