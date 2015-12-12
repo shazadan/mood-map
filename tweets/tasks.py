@@ -12,8 +12,6 @@ from textblob import TextBlob
 from datetime import datetime, timedelta
 from email.utils import parsedate_tz
 from celery import shared_task
-from celery.task.schedules import crontab
-from celery.decorators import periodic_task
 
 import shapefile
 
@@ -93,7 +91,6 @@ def add_tweet(id, created_dt, coordinates, text, county, sentiment_index):
     except Exception as e:
         print "Encountered error: (%s)" % e.message
 
-@periodic_task(run_every=(crontab(minute=0, hour="*/3", day_of_week="*")), ignore_result=True)
 def delete_tweets():
     # Delete all tweets older than 2 days
     date_from_utc = timezone.now() - timedelta(days=1)

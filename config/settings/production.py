@@ -1,4 +1,5 @@
 import dj_database_url
+from datetime import timedelta
 
 from .base import *
 
@@ -25,3 +26,13 @@ STATIC_ROOT = 'staticfiles'
 
 BROKER_URL = get_env_variable('REDIS_URL')
 CELERY_RESULT_BACKEND = get_env_variable('REDIS_URL')
+
+
+CELERYBEAT_SCHEDULE = {
+    'delete-every-hour': {
+        'task': 'tweets.tasks.delete_tweets',
+        'schedule': timedelta(hours=1)
+    },
+}
+
+CELERY_TIMEZONE = 'UTC'
