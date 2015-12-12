@@ -26,7 +26,7 @@ STATIC_ROOT = 'staticfiles'
 
 BROKER_URL = get_env_variable('REDIS_URL')
 CELERY_RESULT_BACKEND = get_env_variable('REDIS_URL')
-
+CELERY_REDIS_MAX_CONNECTIONS = 15
 
 CELERYBEAT_SCHEDULE = {
     'delete-every-hour': {
