@@ -91,6 +91,7 @@ def add_tweet(id, created_dt, coordinates, text, county, sentiment_index):
     except Exception as e:
         print "Encountered error: (%s)" % e.message
 
+@shared_task
 def delete_tweets():
     # Delete all tweets older than 2 days
     date_from_utc = timezone.now() - timedelta(days=1)
