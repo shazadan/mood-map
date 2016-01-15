@@ -34,14 +34,14 @@ def index(request):
     entry_query = Q()
     try:
         # get tweets within the last 24 hours and that belong to AZ counties
-        date_from_utc = timezone.now() - timedelta(days=1)
+        #date_from_utc = timezone.now() - timedelta(days=1)
 
         if ('q' in request.GET) and request.GET['q'].strip():
             query_string = request.GET['q']
             entry_query = get_query(query_string, ['text',])
 
         mood_by_geo = Tweet.objects.filter(
-            county__in=AZ_COUNTIES, created_dt__gte=date_from_utc,
+            county__in=AZ_COUNTIES #, created_dt__gte=date_from_utc,
             ).filter(entry_query).values(
             'county').annotate(
             avg_index=Avg(Case(When(sentiment_index__gt=0, then=1),
